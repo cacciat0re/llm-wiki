@@ -1,0 +1,29 @@
+package model
+
+import "time"
+
+type WikiPage struct {
+	ID      int64  `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	Slug    string `gorm:"column:slug;size:512;not null;uniqueIndex:uk_page_slug" json:"slug"`
+	Title   string `gorm:"column:title;size:512;not null" json:"title"`
+	Content string `gorm:"column:content;type:text;not null;default:''" json:"content"`
+
+	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
+	CreatedBy *string   `gorm:"column:created_by;type:uuid" json:"createdBy,omitempty"`
+	UpdatedAt time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
+	UpdatedBy *string   `gorm:"column:updated_by;type:uuid" json:"updatedBy,omitempty"`
+}
+
+type WikiPageSummary struct {
+	ID        int64     `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
+	Slug      string    `gorm:"column:slug;size:512;not null" json:"slug"`
+	Title     string    `gorm:"column:title;size:512;not null" json:"title"`
+	UpdatedAt time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
+	//UpdatedBy string    `gorm:"column:updated_by;type:uuid" json:"updatedBy"`
+}
+
+type WikiPageUpsertReq struct {
+	Slug    string `gorm:"column:slug;size:512;not null" json:"slug"`
+	Title   string `gorm:"column:title;size:512;not null" json:"title"`
+	Content string `gorm:"column:content;type:text;not null" json:"content"`
+}
