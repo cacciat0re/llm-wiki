@@ -15,15 +15,14 @@ type WikiPage struct {
 }
 
 type WikiPageSummary struct {
-	ID        int64     `gorm:"column:id;primaryKey;autoIncrement" json:"id"`
-	Slug      string    `gorm:"column:slug;size:512;not null" json:"slug"`
-	Title     string    `gorm:"column:title;size:512;not null" json:"title"`
-	UpdatedAt time.Time `gorm:"column:updated_at;not null;autoUpdateTime" json:"updatedAt"`
-	//UpdatedBy string    `gorm:"column:updated_by;type:uuid" json:"updatedBy"`
+	ID        int64     `json:"id"`
+	Slug      string    `json:"slug"`
+	Title     string    `json:"title"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 type WikiPageUpsertReq struct {
-	Slug    string `gorm:"column:slug;size:512;not null" json:"slug"`
-	Title   string `gorm:"column:title;size:512;not null" json:"title"`
-	Content string `gorm:"column:content;type:text;not null" json:"content"`
+	Slug    string `json:"slug"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
 }

@@ -52,9 +52,8 @@ func main() {
 
 	wikiPageHandler.RegisterRoutes(router)
 
+	log.Printf("Server started on port: %d", cfg.Server.Port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Server.Port), router); err != nil {
 		log.Fatalf("failed to start server: %v", err)
 	}
-
-	log.Printf("Server started on port: %d", cfg.Server.Port)
 }

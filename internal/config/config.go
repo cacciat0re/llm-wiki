@@ -1,23 +1,23 @@
 package config
 
 type Configs struct {
-	Server ServerConfig
-	DB     DatabaseConfig
-	CORS   CORSConfig
+	Server ServerConfig   `yaml:"server"`
+	DB     DatabaseConfig `yaml:"db"`
+	CORS   CORSConfig     `yaml:"cors"`
 }
 
 type ServerConfig struct {
-	Port int
+	Port int `yaml:"port"`
 }
 
 type DatabaseConfig struct {
-	Host         string
-	Port         int
-	Username     string
-	Password     string
-	DatabaseName string
+	Host         string `yaml:"host"`
+	Port         int    `yaml:"port"`
+	Username     string `yaml:"username"`
+	Password     string `yaml:"password"`
+	DatabaseName string `yaml:"database_name"`
 }
 
 type CORSConfig struct {
-	AllowedOrigins []string
+	AllowedOrigins []string `yaml:"allowed_origins"`
 }
