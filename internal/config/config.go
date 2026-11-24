@@ -3,11 +3,11 @@ package config
 type Configs struct {
 	Server ServerConfig
 	DB     DatabaseConfig
+	CORS   CORSConfig
 }
 
 type ServerConfig struct {
-	Port           int
-	AllowedOrigins []string
+	Port int
 }
 
 type DatabaseConfig struct {
@@ -16,4 +16,8 @@ type DatabaseConfig struct {
 	Username     string
 	Password     string
 	DatabaseName string
+}
+
+type CORSConfig struct {
+	AllowedOrigins []string
 }

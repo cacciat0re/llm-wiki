@@ -9,9 +9,10 @@ import (
 type IWikiPageService interface {
 	List(ctx context.Context, page int, size int) (PageResponse[model.WikiPageSummary], error)
 	Search(ctx context.Context, keyword string) ([]model.WikiPageSummary, error)
-	Create(ctx context.Context, req model.WikiPageUpsertReq) (model.WikiPage, error)
+	Create(ctx context.Context, req *model.WikiPageUpsertReq) error
 	GetById(ctx context.Context, id int64) (model.WikiPage, error)
 	Update(ctx context.Context, id int64, req model.WikiPageUpsertReq) error
+	Delete(ctx context.Context, id int64) error
 }
 
 type PageResponse[T any] struct {
@@ -52,7 +53,7 @@ func (s *WikiPageService) Search(ctx context.Context, keyword string) ([]model.W
 	return s.repo.Search(ctx, keyword)
 }
 
-func (s *WikiPageService) Create(ctx context.Context, req model.WikiPageUpsertReq) (model.WikiPage, error) {
+func (s *WikiPageService) Create(ctx context.Context, req *model.WikiPageUpsertReq) error {
 	return s.repo.Create(ctx, req)
 }
 
@@ -62,4 +63,8 @@ func (s *WikiPageService) GetById(ctx context.Context, id int64) (model.WikiPage
 
 func (s *WikiPageService) Update(ctx context.Context, id int64, req model.WikiPageUpsertReq) error {
 	return s.repo.Update(ctx, id, req)
+}
+
+func (s *WikiPageService) Delete(ctx context.Context, id int64) error {
+	return s.repo.Delete(ctx, id)
 }

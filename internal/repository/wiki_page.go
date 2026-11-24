@@ -10,9 +10,10 @@ import (
 type IWikiPageRepository interface {
 	List(ctx context.Context, index int, limit int) ([]model.WikiPageSummary, int64, error)
 	Search(ctx context.Context, keyword string) ([]model.WikiPageSummary, error)
-	Create(ctx context.Context, req model.WikiPageUpsertReq) (model.WikiPage, error)
+	Create(ctx context.Context, req *model.WikiPageUpsertReq) error
 	GetById(ctx context.Context, id int64) (model.WikiPage, error)
 	Update(ctx context.Context, id int64, req model.WikiPageUpsertReq) error
+	Delete(ctx context.Context, id int64) error
 }
 
 type WikiPageRepository struct {
@@ -64,7 +65,7 @@ func (r *WikiPageRepository) Search(ctx context.Context, keyword string) ([]mode
 	return summaries, nil
 }
 
-func (r *WikiPageRepository) Create(ctx context.Context, req model.WikiPageUpsertReq) (model.WikiPage, error) {
+func (r *WikiPageRepository) Create(ctx context.Context, req *model.WikiPageUpsertReq) error {
 	page := model.WikiPage{
 		Slug:    req.Slug,
 		Title:   req.Title,
@@ -72,10 +73,10 @@ func (r *WikiPageRepository) Create(ctx context.Context, req model.WikiPageUpser
 	}
 
 	if err := r.db.WithContext(ctx).Create(&page).Error; err != nil {
-		return model.WikiPage{}, err
+		return err
 	}
 
-	return page, nil
+	return nil
 }
 
 func (r *WikiPageRepository) GetById(ctx context.Context, id int64) (model.WikiPage, error) {
@@ -99,6 +100,20 @@ func (r *WikiPageRepository) Update(ctx context.Context, id int64, req model.Wik
 			Content: req.Content,
 			Slug:    req.Slug,
 		})
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
+}
+
+func (r *WikiPageRepository) Delete(ctx context.Context, id int64) error {
+	result := r.db.WithContext(ctx).Delete(&model.WikiPage{}, id)
 
 	if result.Error != nil {
 		return result.Error
