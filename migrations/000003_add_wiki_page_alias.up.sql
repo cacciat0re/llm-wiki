@@ -1,0 +1,2 @@
+ALTER TABLE wiki_pages
+    ADD COLUMN alias TEXT NOT NULL DEFAULT '';

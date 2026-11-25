@@ -8,16 +8,17 @@ Content-Type: application/json
 {
   "slug": "http-test-page",
   "title": "HTTP Test Page",
+  "alias": "http test,zz-http-alias",
   "content": "# HTTP Test\n\ncreated by http test",
   "tags": ["http-test", "wiki"]
 }
 
 ### 3. Search the created page and remember its id
-# Search matches title/content, not slug, so search by title.
-GET {{baseUrl}}/api/wiki/search?keyword=HTTP%20Test
+# keyword on list matches title/content/alias, not slug.
+GET {{baseUrl}}/api/wiki/?keyword=zz-http-alias&page=1&size=10
 
 > {%
-    client.global.set("pageId", response.body[0].id);
+    client.global.set("pageId", response.body.content[0].id);
 %}
 
 ### 4. Get wiki page by id
@@ -30,6 +31,7 @@ Content-Type: application/json
 {
   "slug": "http-test-page",
   "title": "HTTP Test Page Updated",
+  "alias": "http test updated,zz-http-alias",
   "content": "# HTTP Test\n\nupdated by http test",
   "tags": ["http-test", "updated"]
 }

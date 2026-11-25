@@ -26,7 +26,6 @@ func NewWikiPageHandler(svc service.IWikiPageService) *WikiPageHandler {
 func (h *WikiPageHandler) RegisterRoutes(router chi.Router) {
 	router.Route("/api/wiki", func(r chi.Router) {
 		r.Get("/", h.List)
-		r.Get("/search", h.Search)
 		r.Get("/{id}", h.GetById)
 		r.Post("/", h.Create)
 		r.Put("/{id}", h.Update)
@@ -35,40 +34,13 @@ func (h *WikiPageHandler) RegisterRoutes(router chi.Router) {
 }
 
 func (h *WikiPageHandler) List(w http.ResponseWriter, r *http.Request) {
-	// error handle
-	page, err := strconv.Atoi(r.URL.Query().Get("page"))
-	if err != nil || page < 1 {
-		page = 1
-	}
+	keyword := r.URL.Query().Get("keyword")
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+	size, _ := strconv.Atoi(r.URL.Query().Get("size"))
 
-	size, err := strconv.Atoi(r.URL.Query().Get("size"))
-	if err != nil || size < 1 {
-		size = 20
-	}
-	if size > 100 {
-		size = 100
-	}
-
-	resp, err := h.svc.List(r.Context(), page, size)
+	resp, err := h.svc.List(r.Context(), keyword, page, size)
 	if err != nil {
 		log.Printf("failed to list wiki pages: %v", err)
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		log.Printf("failed to write response: %v", err)
-	}
-}
-
-func (h *WikiPageHandler) Search(w http.ResponseWriter, r *http.Request) {
-	keyword := r.URL.Query().Get("keyword")
-
-	resp, err := h.svc.Search(r.Context(), keyword)
-	if err != nil {
-		log.Printf("failed to search wiki pages: %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}

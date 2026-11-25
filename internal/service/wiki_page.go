@@ -7,8 +7,7 @@ import (
 )
 
 type IWikiPageService interface {
-	List(ctx context.Context, page int, size int) (PageResponse[model.WikiPageSummary], error)
-	Search(ctx context.Context, keyword string) ([]model.WikiPageSummary, error)
+	List(ctx context.Context, keyword string, page int, size int) (PageResponse[model.WikiPageSummary], error)
 	Create(ctx context.Context, req *model.WikiPageUpsertReq) error
 	GetById(ctx context.Context, id int64) (model.WikiPage, error)
 	Update(ctx context.Context, id int64, req model.WikiPageUpsertReq) error
@@ -32,8 +31,18 @@ func NewWikiPageService(repo repository.IWikiPageRepository) IWikiPageService {
 	return &WikiPageService{repo: repo}
 }
 
-func (s *WikiPageService) List(ctx context.Context, page int, size int) (PageResponse[model.WikiPageSummary], error) {
-	summaries, total, err := s.repo.List(ctx, page-1, size)
+func (s *WikiPageService) List(ctx context.Context, keyword string, page int, size int) (PageResponse[model.WikiPageSummary], error) {
+	if page < 1 {
+		page = 1
+	}
+	if size < 1 {
+		size = 20
+	}
+	if size > 100 {
+		size = 100
+	}
+
+	summaries, total, err := s.repo.List(ctx, keyword, page-1, size)
 	if err != nil {
 		return PageResponse[model.WikiPageSummary]{}, err
 	}
@@ -47,10 +56,6 @@ func (s *WikiPageService) List(ctx context.Context, page int, size int) (PageRes
 		TotalPages: totalPages,
 		IsLast:     page >= totalPages,
 	}, nil
-}
-
-func (s *WikiPageService) Search(ctx context.Context, keyword string) ([]model.WikiPageSummary, error) {
-	return s.repo.Search(ctx, keyword)
 }
 
 func (s *WikiPageService) Create(ctx context.Context, req *model.WikiPageUpsertReq) error {
