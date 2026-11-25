@@ -37,7 +37,7 @@ func (r *WikiPageRepository) List(ctx context.Context, index int, limit int) ([]
 	var summaries []model.WikiPageSummary
 	err := r.db.WithContext(ctx).
 		Table("wiki_pages").
-		Select("id", "slug", "title", "updated_at").
+		Select("id", "slug", "title", "tags", "updated_at").
 		Order("updated_at desc").
 		Offset((index) * limit).
 		Limit(limit).
@@ -56,7 +56,7 @@ func (r *WikiPageRepository) Search(ctx context.Context, keyword string) ([]mode
 
 	var summaries []model.WikiPageSummary
 	err := db.
-		Select("id", "slug", "title", "updated_at").
+		Select("id", "slug", "title", "tags", "updated_at").
 		Order("updated_at desc").
 		Scan(&summaries).Error
 	if err != nil {
@@ -70,6 +70,7 @@ func (r *WikiPageRepository) Create(ctx context.Context, req *model.WikiPageUpse
 		Slug:    req.Slug,
 		Title:   req.Title,
 		Content: req.Content,
+		Tags:    req.Tags,
 	}
 
 	if err := r.db.WithContext(ctx).Create(&page).Error; err != nil {
@@ -99,6 +100,7 @@ func (r *WikiPageRepository) Update(ctx context.Context, id int64, req model.Wik
 			Title:   req.Title,
 			Content: req.Content,
 			Slug:    req.Slug,
+			Tags:    req.Tags,
 		})
 
 	if result.Error != nil {

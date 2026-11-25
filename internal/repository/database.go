@@ -3,7 +3,6 @@ package repository
 import (
 	"fmt"
 	"llm-wiki-server/internal/config"
-	"log"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -14,8 +13,7 @@ func Connect(c config.DatabaseConfig) (*gorm.DB, error) {
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		log.Fatalf("failed to connect database: %v", err)
-		return nil, err
+		return nil, fmt.Errorf("failed to connect database: %w", err)
 	}
 
 	return db, nil

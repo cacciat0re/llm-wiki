@@ -1,0 +1,19 @@
+server:
+  port: 8088
+
+# MCP server (cmd/mcp). There is no authentication in this phase, so keep the
+# listener on loopback unless it is protected by a firewall or reverse proxy.
+mcp:
+  port: 8089
+  path: /mcp
+
+db:
+  host: 127.0.0.1
+  port: 5432
+  username: postgres
+  password: postgres
+  database_name: llm_wiki
+
+cors:
+  allowed_origins:
+    - http://localhost:5173

@@ -37,8 +37,17 @@ func (h *WikiPageHandler) RegisterRoutes(router chi.Router) {
 func (h *WikiPageHandler) List(w http.ResponseWriter, r *http.Request) {
 	// error handle
 	page, err := strconv.Atoi(r.URL.Query().Get("page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
 
 	size, err := strconv.Atoi(r.URL.Query().Get("size"))
+	if err != nil || size < 1 {
+		size = 20
+	}
+	if size > 100 {
+		size = 100
+	}
 
 	resp, err := h.svc.List(r.Context(), page, size)
 	if err != nil {
@@ -94,9 +103,17 @@ func (h *WikiPageHandler) Create(w http.ResponseWriter, r *http.Request) {
 func (h *WikiPageHandler) GetById(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
 	page, err := h.svc.GetById(r.Context(), int64(id))
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
 		log.Printf("failed to get wiki page %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return

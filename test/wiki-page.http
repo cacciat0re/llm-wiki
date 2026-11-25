@@ -1,0 +1,44 @@
+### 1. List wiki pages
+GET {{baseUrl}}/api/wiki/?page=1&size=10
+
+### 2. Create a wiki page
+POST {{baseUrl}}/api/wiki/
+Content-Type: application/json
+
+{
+  "slug": "http-test-page",
+  "title": "HTTP Test Page",
+  "content": "# HTTP Test\n\ncreated by http test",
+  "tags": ["http-test", "wiki"]
+}
+
+### 3. Search the created page and remember its id
+# Search matches title/content, not slug, so search by title.
+GET {{baseUrl}}/api/wiki/search?keyword=HTTP%20Test
+
+> {%
+    client.global.set("pageId", response.body[0].id);
+%}
+
+### 4. Get wiki page by id
+GET {{baseUrl}}/api/wiki/{{pageId}}
+
+### 5. Update wiki page
+PUT {{baseUrl}}/api/wiki/{{pageId}}
+Content-Type: application/json
+
+{
+  "slug": "http-test-page",
+  "title": "HTTP Test Page Updated",
+  "content": "# HTTP Test\n\nupdated by http test",
+  "tags": ["http-test", "updated"]
+}
+
+### 6. Get the updated page
+GET {{baseUrl}}/api/wiki/{{pageId}}
+
+### 7. Delete wiki page
+DELETE {{baseUrl}}/api/wiki/{{pageId}}
+
+### 8. Verify the page is gone
+GET {{baseUrl}}/api/wiki/1

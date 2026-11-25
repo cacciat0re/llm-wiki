@@ -1,14 +1,16 @@
 GO ?= go
-BIN_DIR := bin
-SERVER_BIN := $(BIN_DIR)/llm-wiki-server
 
-.PHONY: build migrate-up
+.PHONY: build-api buid-mcp migrate-up
 
 # build compiles the HTTP server.
-build:
-	@mkdir -p $(BIN_DIR)
-	$(GO) build -o $(SERVER_BIN) ./cmd/server
+build-api:
+	@mkdir -p bin
+	go build -o bin/api-server ./cmd/server
+
+build-mcp:
+	@mkdir -p bin
+	go build -o bin/mcp-server ./cmd/mcp
 
 # migrate-up runs the migration CLI directly.
-migrate:
+migrate-up:
 	$(GO) run ./cmd/migrate -direction up
