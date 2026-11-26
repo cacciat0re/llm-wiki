@@ -10,8 +10,8 @@ import (
 type IWikiPageService interface {
 	List(ctx context.Context, keyword string, page int, size int) (PageResponse[model.WikiPageSummary], error)
 	Create(ctx context.Context, req *model.WikiPageUpsertReq) error
-	GetById(ctx context.Context, id int64) (model.WikiPage, error)
-	GetBySlug(ctx context.Context, slug string) (model.WikiPage, error)
+	GetById(ctx context.Context, id int64) (model.WikiPageDetail, error)
+	GetBySlug(ctx context.Context, slug string) (model.WikiPageDetail, error)
 	Update(ctx context.Context, id int64, req model.WikiPageUpsertReq) error
 	UpsertBySlug(ctx context.Context, req *model.WikiPageUpsertReq) (int64, error)
 	Replace(ctx context.Context, slug string, oldString string, newString string, replaceAll bool) (int, error)
@@ -66,11 +66,11 @@ func (s *WikiPageService) Create(ctx context.Context, req *model.WikiPageUpsertR
 	return s.repo.Create(ctx, req)
 }
 
-func (s *WikiPageService) GetById(ctx context.Context, id int64) (model.WikiPage, error) {
+func (s *WikiPageService) GetById(ctx context.Context, id int64) (model.WikiPageDetail, error) {
 	return s.repo.GetById(ctx, id)
 }
 
-func (s *WikiPageService) GetBySlug(ctx context.Context, slug string) (model.WikiPage, error) {
+func (s *WikiPageService) GetBySlug(ctx context.Context, slug string) (model.WikiPageDetail, error) {
 	return s.repo.GetBySlug(ctx, slug)
 }
 

@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"gorm.io/gorm"
@@ -106,7 +107,7 @@ func (h *WikiPageHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	page, err := h.svc.GetBySlug(r.Context(), slug)
+	detail, err := h.svc.GetBySlug(r.Context(), slug)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -119,7 +120,7 @@ func (h *WikiPageHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(page); err != nil {
+	if err := json.NewEncoder(w).Encode(detail); err != nil {
 		log.Printf("failed to write response: %v", err)
 	}
 }
@@ -128,7 +129,7 @@ func (h *WikiPageHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.Atoi(chi.URLParam(r, "id"))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -140,7 +141,10 @@ func (h *WikiPageHandler) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := h.svc.Update(r.Context(), int64(id), page); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
+		// A missing source id is wrapped with gorm.ErrRecordNotFound in the
+		// repository. Keep it as a 500 for now instead of mislabeling it as a
+		// missing page.
+		if errors.Is(err, gorm.ErrRecordNotFound) && !strings.HasPrefix(err.Error(), "source ") {
 			http.Error(w, "wiki page not found", http.StatusNotFound)
 			return
 		}

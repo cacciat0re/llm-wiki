@@ -16,8 +16,8 @@ type IWikiPageRepository interface {
 	// matches every page. index is 0-based and limit is the page size.
 	List(ctx context.Context, keyword string, index int, limit int) ([]model.WikiPageSummary, int64, error)
 	Create(ctx context.Context, req *model.WikiPageUpsertReq) error
-	GetById(ctx context.Context, id int64) (model.WikiPage, error)
-	GetBySlug(ctx context.Context, slug string) (model.WikiPage, error)
+	GetById(ctx context.Context, id int64) (model.WikiPageDetail, error)
+	GetBySlug(ctx context.Context, slug string) (model.WikiPageDetail, error)
 	Update(ctx context.Context, id int64, req model.WikiPageUpsertReq) error
 	UpsertBySlug(ctx context.Context, req *model.WikiPageUpsertReq) (int64, error)
 	ReplaceContent(ctx context.Context, slug string, oldString string, newString string, replaceAll bool) (int, error)
@@ -48,7 +48,7 @@ func (r *WikiPageRepository) List(ctx context.Context, keyword string, index int
 
 	var summaries []model.WikiPageSummary
 
-	query.Select("id", "slug", "title", "alias", "tags", "updated_at").
+	query.Select("id", "slug", "title", "alias", "tags").
 		Order("updated_at desc").
 		Offset(index * limit).
 		Limit(limit)
@@ -61,83 +61,163 @@ func (r *WikiPageRepository) List(ctx context.Context, keyword string, index int
 }
 
 func (r *WikiPageRepository) Create(ctx context.Context, req *model.WikiPageUpsertReq) error {
-	page := model.WikiPage{
-		Slug:    req.Slug,
-		Title:   req.Title,
-		Alias:   req.Alias,
-		Content: req.Content,
-		Tags:    req.Tags,
-	}
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		page := model.WikiPage{
+			Slug:    req.Slug,
+			Title:   req.Title,
+			Alias:   req.Alias,
+			Content: req.Content,
+			Tags:    req.Tags,
+		}
 
-	if err := r.db.WithContext(ctx).Create(&page).Error; err != nil {
-		return err
-	}
+		if err := tx.Create(&page).Error; err != nil {
+			return err
+		}
 
-	return nil
+		return replacePageSources(tx, page.ID, req.SourceIDs)
+	})
 }
 
-func (r *WikiPageRepository) GetById(ctx context.Context, id int64) (model.WikiPage, error) {
+func (r *WikiPageRepository) GetById(ctx context.Context, id int64) (model.WikiPageDetail, error) {
 	var page model.WikiPage
 	if err := r.db.WithContext(ctx).
 		Table("wiki_pages").
 		Where("id = ?", id).
 		Take(&page).Error; err != nil {
-		return model.WikiPage{}, err
+		return model.WikiPageDetail{}, err
 	}
 
-	return page, nil
+	return r.detail(ctx, page)
 }
 
-func (r *WikiPageRepository) GetBySlug(ctx context.Context, slug string) (model.WikiPage, error) {
+func (r *WikiPageRepository) GetBySlug(ctx context.Context, slug string) (model.WikiPageDetail, error) {
 	var page model.WikiPage
 	if err := r.db.WithContext(ctx).
 		Table("wiki_pages").
 		Where("slug = ?", slug).
 		Take(&page).Error; err != nil {
-		return model.WikiPage{}, err
+		return model.WikiPageDetail{}, err
 	}
 
-	return page, nil
+	return r.detail(ctx, page)
+}
+
+func (r *WikiPageRepository) detail(ctx context.Context, page model.WikiPage) (model.WikiPageDetail, error) {
+	sources := make([]model.Source, 0)
+	if err := r.db.WithContext(ctx).
+		Model(&model.Source{}).
+		Joins("JOIN wiki_page_sources wps ON wps.source_id = sources.id").
+		Where("wps.wiki_page_id = ?", page.ID).
+		Order("sources.id desc").
+		Find(&sources).Error; err != nil {
+		return model.WikiPageDetail{}, err
+	}
+
+	return model.WikiPageDetail{
+		ID:        page.ID,
+		Slug:      page.Slug,
+		Title:     page.Title,
+		Alias:     page.Alias,
+		Tags:      page.Tags,
+		Content:   page.Content,
+		UpdatedAt: page.UpdatedAt,
+		Sources:   sources,
+	}, nil
 }
 
 func (r *WikiPageRepository) Update(ctx context.Context, id int64, req model.WikiPageUpsertReq) error {
-	result := r.db.WithContext(ctx).
-		Model(&model.WikiPage{}).
-		Where("id = ?", id).
-		// Select forces zero values to be written, so an empty alias/tags
-		// actually clears the stored value instead of being skipped.
-		Select("slug", "title", "alias", "content", "tags").
-		Updates(model.WikiPage{
-			Title:   req.Title,
-			Alias:   req.Alias,
-			Content: req.Content,
-			Slug:    req.Slug,
-			Tags:    req.Tags,
-		})
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		result := tx.Model(&model.WikiPage{}).
+			Where("id = ?", id).
+			// Select forces zero values to be written, so an empty alias/tags
+			// actually clears the stored value instead of being skipped.
+			Select("slug", "title", "alias", "content", "tags").
+			Updates(model.WikiPage{
+				Title:   req.Title,
+				Alias:   req.Alias,
+				Content: req.Content,
+				Slug:    req.Slug,
+				Tags:    req.Tags,
+			})
 
-	if result.Error != nil {
-		return result.Error
-	}
+		if result.Error != nil {
+			return result.Error
+		}
 
-	if result.RowsAffected == 0 {
-		return gorm.ErrRecordNotFound
-	}
+		if result.RowsAffected == 0 {
+			return gorm.ErrRecordNotFound
+		}
 
-	return nil
+		return replacePageSources(tx, id, req.SourceIDs)
+	})
 }
 
 func (r *WikiPageRepository) UpsertBySlug(ctx context.Context, req *model.WikiPageUpsertReq) (int64, error) {
 	var id int64
-	err := r.db.WithContext(ctx).Raw(`
-		INSERT INTO wiki_pages (slug, title, alias, content, tags)
-		VALUES (?, ?, ?, ?, ?)
-		ON CONFLICT (slug) DO UPDATE SET
-			title = EXCLUDED.title, alias = EXCLUDED.alias,
-			content = EXCLUDED.content, tags = EXCLUDED.tags,
-			updated_at = NOW()
-		RETURNING id`,
-		req.Slug, req.Title, req.Alias, req.Content, req.Tags).Scan(&id).Error
+	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		if err := tx.Raw(`
+			INSERT INTO wiki_pages (slug, title, alias, content, tags)
+			VALUES (?, ?, ?, ?, ?)
+			ON CONFLICT (slug) DO UPDATE SET
+				title = EXCLUDED.title, alias = EXCLUDED.alias,
+				content = EXCLUDED.content, tags = EXCLUDED.tags,
+				updated_at = NOW()
+			RETURNING id`,
+			req.Slug, req.Title, req.Alias, req.Content, req.Tags).Scan(&id).Error; err != nil {
+			return err
+		}
+
+		// nil means the caller (e.g. MCP write without source_ids) did not
+		// provide sources; keep the existing links. A non-nil slice replaces
+		// them, and an empty slice clears them.
+		if req.SourceIDs == nil {
+			return nil
+		}
+
+		return replacePageSources(tx, id, req.SourceIDs)
+	})
 	return id, err
+}
+
+func replacePageSources(tx *gorm.DB, pageID int64, sourceIDs []int64) error {
+	ids := make([]int64, 0, len(sourceIDs))
+	seen := make(map[int64]struct{}, len(sourceIDs))
+	for _, id := range sourceIDs {
+		if _, ok := seen[id]; ok {
+			continue
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, id)
+	}
+
+	if len(ids) > 0 {
+		var existing []int64
+		if err := tx.Model(&model.Source{}).Where("id IN ?", ids).Pluck("id", &existing).Error; err != nil {
+			return err
+		}
+		found := make(map[int64]struct{}, len(existing))
+		for _, id := range existing {
+			found[id] = struct{}{}
+		}
+		for _, id := range ids {
+			if _, ok := found[id]; !ok {
+				return fmt.Errorf("source %d not found: %w", id, gorm.ErrRecordNotFound)
+			}
+		}
+	}
+
+	if err := tx.Where("wiki_page_id = ?", pageID).Delete(&model.WikiPageSource{}).Error; err != nil {
+		return err
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+
+	links := make([]model.WikiPageSource, 0, len(ids))
+	for _, id := range ids {
+		links = append(links, model.WikiPageSource{WikiPageID: pageID, SourceID: id})
+	}
+	return tx.Create(&links).Error
 }
 
 // ReplaceContent atomically replaces oldString in a page's content. It locks
@@ -196,7 +276,7 @@ func (r *WikiPageRepository) Backlinks(ctx context.Context, slug string) ([]mode
 	var pages []model.WikiPageSummary
 	err := r.db.WithContext(ctx).Model(&model.WikiPage{}).
 		Where("content LIKE ?", "%[["+slug+"%").
-		Select("id", "slug", "title", "alias", "tags", "updated_at").
+		Select("id", "slug", "title", "alias", "tags").
 		Where("slug <> ?", slug).
 		Find(&pages).Error
 	return pages, err

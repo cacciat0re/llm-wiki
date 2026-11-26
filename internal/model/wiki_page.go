@@ -17,18 +17,29 @@ type WikiPage struct {
 }
 
 type WikiPageSummary struct {
+	ID    int64       `json:"id"`
+	Slug  string      `json:"slug"`
+	Title string      `json:"title"`
+	Alias string      `gorm:"column:alias" json:"alias"`
+	Tags  StringArray `gorm:"column:tags;type:text[]" json:"tags"`
+}
+
+type WikiPageDetail struct {
 	ID        int64       `json:"id"`
 	Slug      string      `json:"slug"`
 	Title     string      `json:"title"`
-	Alias     string      `gorm:"column:alias" json:"alias"`
-	Tags      StringArray `gorm:"column:tags;type:text[]" json:"tags"`
+	Alias     string      `json:"alias"`
+	Tags      StringArray `json:"tags"`
+	Content   string      `json:"content"`
 	UpdatedAt time.Time   `json:"updatedAt"`
+	Sources   []Source    `gorm:"-" json:"sources"`
 }
 
 type WikiPageUpsertReq struct {
-	Slug    string      `json:"slug"`
-	Title   string      `json:"title"`
-	Alias   string      `json:"alias"`
-	Content string      `json:"content"`
-	Tags    StringArray `json:"tags"`
+	Slug      string      `json:"slug"`
+	Title     string      `json:"title"`
+	Alias     string      `json:"alias"`
+	Content   string      `json:"content"`
+	Tags      StringArray `json:"tags"`
+	SourceIDs []int64     `json:"sourceIds"`
 }

@@ -31,12 +31,15 @@ func main() {
 
 	// Repository
 	wikiPageRepository := repository.NewWikiPageRepository(db)
+	sourceRepository := repository.NewSourceRepository(db)
 
 	// Service
 	wikiPageService := service.NewWikiPageService(wikiPageRepository)
+	sourceService := service.NewSourceService(sourceRepository)
 
 	// Handler
 	wikiPageHandler := route.NewWikiPageHandler(wikiPageService)
+	sourceHandler := route.NewSourceHandler(sourceService)
 
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
@@ -50,6 +53,7 @@ func main() {
 	}))
 
 	wikiPageHandler.RegisterRoutes(router)
+	sourceHandler.RegisterRoutes(router)
 
 	log.Printf("Server started on port: %d", cfg.Server.Port)
 	if err := http.ListenAndServe(fmt.Sprintf(":%d", cfg.Server.Port), router); err != nil {
