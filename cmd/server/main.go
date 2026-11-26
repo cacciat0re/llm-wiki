@@ -13,16 +13,15 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/jinzhu/configor"
 )
 
 func main() {
 	log.SetOutput(os.Stdout)
 
 	// Load config
-	var cfg config.Configs
-	if err := configor.Load(&cfg, "config.yml"); err != nil {
-		log.Fatalf("failed to load config: %v", err)
+	cfg, err := config.Load("config.yml")
+	if err != nil {
+		log.Fatalf("Failed to load config: %v", err)
 	}
 
 	db, err := repository.Connect(cfg.DB)

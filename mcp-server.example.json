@@ -2,7 +2,7 @@
   "mcpServers": {
     "llm-wiki": {
       "command": "/home/cacc/Repositories/llm-wiki-server/bin/mcp-server",
-      "args": ["-config", "/home/cacc/Repositories/llm-wiki-server/config.yml"]
+      "args": ["-c", "/home/cacc/Repositories/llm-wiki-server/config.yml"]
     }
   }
 }

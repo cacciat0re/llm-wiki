@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"llm-wiki-server/internal/model"
 	"llm-wiki-server/internal/repository"
 )
@@ -10,7 +11,10 @@ type IWikiPageService interface {
 	List(ctx context.Context, keyword string, page int, size int) (PageResponse[model.WikiPageSummary], error)
 	Create(ctx context.Context, req *model.WikiPageUpsertReq) error
 	GetById(ctx context.Context, id int64) (model.WikiPage, error)
+	GetBySlug(ctx context.Context, slug string) (model.WikiPage, error)
 	Update(ctx context.Context, id int64, req model.WikiPageUpsertReq) error
+	UpsertBySlug(ctx context.Context, req *model.WikiPageUpsertReq) (int64, error)
+	Replace(ctx context.Context, slug string, oldString string, newString string, replaceAll bool) (int, error)
 	Delete(ctx context.Context, id int64) error
 }
 
@@ -66,8 +70,33 @@ func (s *WikiPageService) GetById(ctx context.Context, id int64) (model.WikiPage
 	return s.repo.GetById(ctx, id)
 }
 
+func (s *WikiPageService) GetBySlug(ctx context.Context, slug string) (model.WikiPage, error) {
+	return s.repo.GetBySlug(ctx, slug)
+}
+
+//func (s *WikiPageService) GetBackLinks(ctx context.Context, id int64) ([]model.WikiPageSummary, error) {
+//	return s.repo.
+//}
+
 func (s *WikiPageService) Update(ctx context.Context, id int64, req model.WikiPageUpsertReq) error {
 	return s.repo.Update(ctx, id, req)
+}
+
+func (s *WikiPageService) UpsertBySlug(ctx context.Context, req *model.WikiPageUpsertReq) (int64, error) {
+	if req.Slug == "" {
+		return 0, errors.New("slug is required")
+	}
+	return s.repo.UpsertBySlug(ctx, req)
+}
+
+func (s *WikiPageService) Replace(ctx context.Context, slug string, oldString string, newString string, replaceAll bool) (int, error) {
+	if slug == "" {
+		return 0, errors.New("slug is required")
+	}
+	if oldString == "" {
+		return 0, errors.New("old_string must not be empty")
+	}
+	return s.repo.ReplaceContent(ctx, slug, oldString, newString, replaceAll)
 }
 
 func (s *WikiPageService) Delete(ctx context.Context, id int64) error {

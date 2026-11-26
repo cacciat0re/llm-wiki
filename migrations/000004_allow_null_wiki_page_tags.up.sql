@@ -1,0 +1,1 @@
+ALTER TABLE wiki_pages ALTER COLUMN tags DROP NOT NULL;

@@ -8,7 +8,7 @@ type WikiPage struct {
 	Title   string      `gorm:"column:title;size:512;not null" json:"title"`
 	Alias   string      `gorm:"column:alias;type:text;not null;default:''" json:"alias"`
 	Content string      `gorm:"column:content;type:text;not null;default:''" json:"content"`
-	Tags    StringArray `gorm:"column:tags;type:text[];not null;default:'{}'" json:"tags"`
+	Tags    StringArray `gorm:"column:tags;type:text[]" json:"tags"`
 
 	CreatedAt time.Time `gorm:"column:created_at;not null;autoCreateTime" json:"createdAt"`
 	CreatedBy *string   `gorm:"column:created_by;type:uuid" json:"createdBy,omitempty"`

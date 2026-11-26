@@ -26,7 +26,7 @@ func NewWikiPageHandler(svc service.IWikiPageService) *WikiPageHandler {
 func (h *WikiPageHandler) RegisterRoutes(router chi.Router) {
 	router.Route("/api/wiki", func(r chi.Router) {
 		r.Get("/", h.List)
-		r.Get("/{id}", h.GetById)
+		r.Get("/{slug}", h.GetBySlug)
 		r.Post("/", h.Create)
 		r.Put("/{id}", h.Update)
 		r.Delete("/{id}", h.Delete)
@@ -72,21 +72,47 @@ func (h *WikiPageHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *WikiPageHandler) GetById(w http.ResponseWriter, r *http.Request) {
+// GetById is no longer exposed; lookups go through the slug route instead.
+//func (h *WikiPageHandler) GetById(w http.ResponseWriter, r *http.Request) {
+//
+//	id, err := strconv.Atoi(chi.URLParam(r, "id"))
+//	if err != nil {
+//		http.Error(w, err.Error(), http.StatusBadRequest)
+//		return
+//	}
+//
+//	page, err := h.svc.GetById(r.Context(), int64(id))
+//	if err != nil {
+//		if errors.Is(err, gorm.ErrRecordNotFound) {
+//			http.Error(w, err.Error(), http.StatusNotFound)
+//			return
+//		}
+//		log.Printf("failed to get wiki page %v", err)
+//		http.Error(w, "internal server error", http.StatusInternalServerError)
+//		return
+//	}
+//
+//	w.Header().Set("Content-Type", "application/json")
+//	w.WriteHeader(http.StatusOK)
+//	if err := json.NewEncoder(w).Encode(page); err != nil {
+//		log.Printf("failed to write response: %v", err)
+//	}
+//}
 
-	id, err := strconv.Atoi(chi.URLParam(r, "id"))
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+func (h *WikiPageHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
+	slug := chi.URLParam(r, "slug")
+	if slug == "" {
+		http.Error(w, "slug is required", http.StatusBadRequest)
 		return
 	}
 
-	page, err := h.svc.GetById(r.Context(), int64(id))
+	page, err := h.svc.GetBySlug(r.Context(), slug)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-		log.Printf("failed to get wiki page %v", err)
+		log.Printf("failed to get wiki page by slug %v", err)
 		http.Error(w, "internal server error", http.StatusInternalServerError)
 		return
 	}
